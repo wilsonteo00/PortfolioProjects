@@ -34,7 +34,7 @@ library(dplyr)
 
 # Setting the working directory to the correct location
 getwd() # To display the working directory
-setwd("C:/Users/wilso/OneDrive/Desktop/Portfolio_Project/zR project files/Casestudy_capstone_R/Sample_CSV") # To set up the folder to make retriving files easier
+setwd("C:/Users/wilso/OneDrive/Desktop/Portfolio_Project/zR project files/Casestudy_capstone_R/Sample_CSV") # To set up the folder to make retrieving files easier
 
 #===============================
 # Step 1: Importing the datasets

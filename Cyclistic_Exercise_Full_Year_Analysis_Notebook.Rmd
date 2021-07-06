@@ -1,0 +1,441 @@
+---
+title: "Descriptive Analysis on bike-sharing service using R"
+author: "Wilson Teo"
+date: "07/07/2021"
+output:
+  html_document:
+    df_print: paged
+    code_folding: hide
+---
+
+## Descriptive Analysis on bike-sharing service.
+![https://unsplash.com/photos/RbsLZxcxzj0](C:\Users\wilso\OneDrive\Desktop\Portfolio_Project\zR project files\Casestudy_capstone_R\Images\Bike.jpg)
+
+This analysis is part of the capstone project for Google Data Analytics Certificate. 
+
+* It is originally based on the case study "Sophisticated, Clear, and Polished": Divvy and Data Visualisation" written by Kevin Hartman.
+* Google Data Analytics Certificate Case Study 1 (Cyclistic) [Data Source](https://divvy-tripdata.s3.amazonaws.com/index.html)
+* The casestudy is based on Divvy dataset used from April 2020 to March 2021 with minor amendments made to the raw data to include more cleaning functions like removing additional columns.
+* Skills used: Combining different files, data cleaning, descriptive analysis and data visualization using R.
+
+
+## This analysis aims to answer the key question: "In what ways do members and casual riders use Divvy bikes differently?"
+
+
+### 1. We will start with setting up the environment
+
+
+#### 1.1 Setting up the packages and calling out the library
+
+* tidyverse for data import and wrangling
+* lubridate for dealing with dates
+* ggplot2 for graph plotting
+* janitor, skimr and dplyr for cleaning data
+
+```{r Initial setup of environment, message=FALSE, results='hide'}
+# Calling out the library
+library(tidyverse) 
+library(lubridate)
+library(ggplot2)
+library(skimr)
+library(janitor)
+library(dplyr)
+```
+```{r setup, include=FALSE, cache = FALSE}
+require("knitr")
+## setting working directory
+opts_knit$set(root.dir = "C:/Users/wilso/OneDrive/Desktop/Portfolio_Project/zR project files/Casestudy_capstone_R/Sample_CSV")
+```
+#### 1.2 Importing the data sets
+```{r Loading the datasets, message=FALSE, warning=FALSE}
+# Upload the Divvy datasets here (CSV formats)
+apr_2020 <- read_csv("2020_04_tripdata.csv")
+may_2020 <- read_csv("2020_05_tripdata.csv")
+jun_2020 <- read_csv("2020_06_tripdata.csv")
+jul_2020 <- read_csv("2020_07_tripdata.csv")
+aug_2020 <- read_csv("2020_08_tripdata.csv")
+sep_2020 <- read_csv("2020_09_tripdata.csv")
+oct_2020 <- read_csv("2020_10_tripdata.csv")
+nov_2020 <- read_csv("2020_11_tripdata.csv")
+dec_2020 <- read_csv("2020_12_tripdata.csv")
+jan_2021 <- read_csv("2021_01_tripdata.csv")
+feb_2021 <- read_csv("2021_02_tripdata.csv")
+mar_2021 <- read_csv("2021_03_tripdata.csv")
+```
+
+
+### 2. Next we will merge them into a single data frame for analysis
+
+
+#### 2.1 A closer look will show issues with the column names
+```{r Showing column name, message=FALSE, class.source = 'fold-show'}
+# Compare column names
+colnames(apr_2020)
+colnames(oct_2020)
+```
+#### Observation
+* Most of the column names are the same except for the last few columns.
+* From apr 2020 to sep 2020, there is a column named "usertype".
+* While from oct 2020 to mar 2021, there are 4 more columns named "member_casual", "ride_length", "day_of_week", "month_year".
+
+
+
+#### 2.1.1 Check apr 2020 dataframe and oct 2020 dataframe to see the content of these columns to see which ones are meant to merge together. 
+```{r Check dataframe, class.source = 'fold-show'}
+# Check apr 2020 specific column "usertype"
+head(apr_2020$usertype)
+
+# Check oct 2020 columns
+head(oct_2020[c("member_casual","ride_length","day_of_week","month_year")])
+```
+#### Observation
+* "usertype" returns member and casual
+* "member_casual" return casual, "ride_length" return MM:SS format, "day_of_week" return single number and "month_year" return MMM-YY format
+* We can see that usertype and member_casual returns similar output
+
+
+
+#### 2.1.2 Rename "usertype" to "member_casual" so that it is standardise
+```{r Rename the usertype to member_casual, results= 'hide', class.source = 'fold-show'}
+# Rename the files
+apr_2020 <- rename(apr_2020, member_casual = usertype)
+may_2020 <- rename(may_2020, member_casual = usertype)
+jun_2020 <- rename(jun_2020, member_casual = usertype)
+jul_2020 <- rename(jul_2020, member_casual = usertype)
+aug_2020 <- rename(aug_2020, member_casual = usertype)
+sep_2020 <- rename(sep_2020, member_casual = usertype)
+
+# Check to see the column is changed properly
+str(apr_2020)
+```
+
+
+#### 2.2 Second issue we can observe is that the data types are not consistent between the datasets
+
+
+#### 2.2.1 Converting the data types to make it consistent
+* Ride_length column from time format to character type (Oct 2020 to Mar 2021)
+* Start_station_id and end_station_id from number type to character type (Apr 2020 to Nov 2020)
+```{r Converting the data type, results='hide'}
+# Converting ride_length from time format to character type 
+# From Oct 2020 to Mar 2021
+mar_2021 <- mutate(mar_2021, ride_length = as.character(ride_length))
+feb_2021 <- mutate(feb_2021, ride_length = as.character(ride_length))
+jan_2021 <- mutate(jan_2021, ride_length = as.character(ride_length))
+dec_2020 <- mutate(dec_2020, ride_length = as.character(ride_length))
+nov_2020 <- mutate(nov_2020, ride_length = as.character(ride_length))
+oct_2020 <- mutate(oct_2020, ride_length = as.character(ride_length))
+
+# Converting start_station_id and end_station_id from num to chr to allow combining
+# From Apr 2020 to Nov 2020
+apr_2020 <- mutate(apr_2020, start_station_id = as.character(start_station_id), end_station_id = as.character(end_station_id))
+may_2020 <- mutate(may_2020, start_station_id = as.character(start_station_id), end_station_id = as.character(end_station_id))
+jun_2020 <- mutate(jun_2020, start_station_id = as.character(start_station_id), end_station_id = as.character(end_station_id))
+jul_2020 <- mutate(jul_2020, start_station_id = as.character(start_station_id), end_station_id = as.character(end_station_id))
+aug_2020 <- mutate(aug_2020, start_station_id = as.character(start_station_id), end_station_id = as.character(end_station_id))
+sep_2020 <- mutate(sep_2020, start_station_id = as.character(start_station_id), end_station_id = as.character(end_station_id))
+oct_2020 <- mutate(oct_2020, start_station_id = as.character(start_station_id), end_station_id = as.character(end_station_id))
+nov_2020 <- mutate(nov_2020, start_station_id = as.character(start_station_id), end_station_id = as.character(end_station_id))
+```
+
+
+#### 2.3 Stacking everything together and preview it
+```{r Stacking the dataframes together}
+# Stack individual dataframes into one big data frame
+all_trips <- bind_rows(apr_2020, may_2020, jun_2020, jul_2020, aug_2020, sep_2020, oct_2020, nov_2020, dec_2020, jan_2021, feb_2021, mar_2021) 
+
+# Inspect the new dataframe
+str(all_trips)
+```
+#### Observation
+* We can see that the last three columns will return NA values as these columns are not present in all the datasets.
+
+
+
+#### 2.3.1 Remove the additional columns
+```{r To remove additional columns}
+# Remove columns that are not present in all the files: "ride_length", "day_of_week", "month_year"
+all_trips <- select(all_trips, -c(ride_length, day_of_week, month_year))
+```
+
+
+### 3 After merging, we will clean the data and add in additional data to prepare it for analysis 
+
+
+#### 3.1 Inspect the new table that has been created
+```{r To inspect the combined dataframe, results='hide', class.source = 'fold-show'}
+# List of summary to get a better idea of the data
+head(all_trips) # See the 6 rows of data frame.
+str(all_trips) # See list of columns and data types (numeric, character, etc)
+summary(all_trips) # Statistical summary of data. Mainly for numerics
+skim_without_charts(all_trips) # Gives a detailed summary (Rows, columns, variable type)
+```
+#### There are a few problems that need to be fixed:
+1. Using skim_without_charts, it is observed that for member_casual have 4 unique values instead of 2 unique values ("member", "casual")
+2. There is a need for additional columns of data -- such as day, month, year -- that provide additional opportunities to aggregate the data.
+3. To have a calculated field for length of ride for the entire dataframe.
+
+
+
+#### 3.2 Solving the first problem - Merge into 2 unique values
+
+
+#### 3.2.1 Checking the unique values and number of observation using table function
+```{r To check the number of observations}
+# Check the number of observations before reassigning
+table(all_trips$member_casual)
+```
+#### Observation
+* By using the table function, the 4 unique values are identified ("member", "casual", "customer", "subscriber")
+* member and subscriber are meant to be the same while casual and customer are meant to be the same.
+
+
+
+#### 3.2.2 Replace the values accordingly and check to make sure the proper number of observations were reassigned
+```{r To replace and inspect the data}
+# To replace the values in the column accordingly
+all_trips <- mutate(all_trips, member_casual = recode(member_casual, "subscriber" = "member", "customer" = "casual"))
+
+# Check to make sure the proper number of observations were reassigned
+table(all_trips$member_casual)
+```
+
+
+#### 3.3 Solving the second problem - Having additional columns for day, month, year
+
+#### 3.3.1 Adding in the additional columns
+```{r Add in additional column, class.source = 'fold-show'}
+# Add in the date column by converting the start date into date format 
+all_trips$date <- as.POSIXct(all_trips$started_at, format = "%d/%m/%Y")
+
+# Add in the month, day, year and which day column
+all_trips$month <- format(all_trips$date,format = "%m")
+all_trips$day <- format(all_trips$date,format = "%d")
+all_trips$year <- format(all_trips$date,format = "%Y")
+all_trips$day_of_week <- format(all_trips$date,format = "%A")
+
+# Viewing the data
+head(all_trips)
+```
+
+
+#### 3.4 Solving the third problem - Having a calculated field for length of ride
+
+
+#### 3.4.1 Converting the started_at and ended_at into datetime format
+```{r Converting the data into correct format}
+# Convert the started_at and ended_at into datetime format for the calculation
+all_trips$started_at <- as.POSIXct(all_trips$started_at, format = "%d/%m/%Y %H:%M")
+all_trips$ended_at <- as.POSIXct(all_trips$ended_at, format = "%d/%m/%Y %H:%M")
+```
+
+
+#### 3.4.2 Calculating the length of ride and a quick glance on the maximum and minimum
+```{r Calculating the length of ride}
+# Calculate the ride length by deducting the start time from end time
+all_trips$ride_length <- difftime(all_trips$ended_at,all_trips$started_at, units = "auto")
+
+# Convert "ride_length" from factor to numeric to run calculations 
+all_trips$ride_length <- as.numeric(as.character(all_trips$ride_length))
+
+# Quick check on the output 
+max(all_trips$ride_length)
+min(all_trips$ride_length)
+```
+#### Observation
+* The maximum for ride length is 3523200 seconds while minimum is negative 1743000.
+* The negative value does not make sense in this case hence we should look into it further.
+
+
+
+#### 3.4.3 Looking into the negative values
+```{r Negative values for ride length}
+# Inspect the ride lengths that are negative 
+all_trips %>%
+ select(started_at,ended_at,ride_length) %>%
+ filter(ride_length < 0)
+
+# Total number of rows
+nrow(all_trips)
+```
+#### Observation
+* What we can see from the filtered data is that these are likely to be machine errors as the ended time is earlier than started time.
+* The number of negative entries are 3,333 which is 0.09551% out of the total number of rows(3,489,748).
+* Hence we can safely remove these 'bad' data as it can distort the descriptive analysis.
+
+
+
+#### 3.4.4 Creating a new data frame without the 'bad' data
+```{r Removing "bad" data, class.source = 'fold-show'}
+# Removing the data where ride_length was negative and store into a dataframe
+all_trips_v2 <- all_trips[!(all_trips$ride_length < 0),]
+
+# Inspect the new dataframe for negative values in ride length 
+all_trips_v2 %>%
+ select(started_at,ended_at,ride_length) %>%
+ filter(ride_length < 0)
+```
+
+
+### 4 After getting the data into a good shape we can start our analysis to find out how members and casual riders use the bike sharing differently.
+
+
+#### 4.1 Descriptive analysis on ride_length 
+```{r Analysis on ride_length}
+# Descriptive analysis on ride_length (all figures in seconds)
+mean(all_trips_v2$ride_length)#straight average (total ride length/ rides)
+median(all_trips_v2$ride_length) #midpoint number in the ascending array of ride lengths
+max(all_trips_v2$ride_length)#longest ride
+min(all_trips_v2$ride_length)#shortest ride
+
+# Summary of different stats
+summary(all_trips_v2$ride_length)
+```
+#### Observation
+* For all riders
+* Average ride length: 27.9 minutes (1674 seconds)
+* Median ride length: 15 minutes (900 seconds)
+* Maximum ride length: 16.3 hours (3523200 seconds)
+* Minimum ride length: 0 (Not meaningful as we filtered out negative values)
+* These data gives us a feel of how riders are using the bike sharing services right now.
+
+
+
+#### 4.1.1 Dive deeper to compare members and casual users using different stats
+```{r Aggregation of data, class.source = 'fold-show'}
+# Comparing members and casual users using different stats
+aggregate(all_trips_v2$ride_length~all_trips_v2$member_casual, FUN = mean)
+aggregate(all_trips_v2$ride_length~all_trips_v2$member_casual, FUN = median)
+aggregate(all_trips_v2$ride_length~all_trips_v2$member_casual, FUN = max)
+aggregate(all_trips_v2$ride_length~all_trips_v2$member_casual, FUN = min)
+```
+#### Observation
+* Comparison between the two type of users
+* Average ride length: 44.9 minutes (Casual) | 16 minutes (Member)
+* Median ride length: 21 minutes (Casual) | 11 minutes (Member)
+* Maximum ride length: 15.4 hours (Casual) | 16.3 hours (Member)
+* Minimum ride length: 0 (Not meaningful as we filtered out negative values)
+* By looking at the comparison, we can see an interesting trend where casual riders are generally using our bike services longer in comparison to members.
+* Maximum and minimum values are not as meaningful as they are easily affected by outliers. 
+
+
+
+#### 4.1.2 Comparing average ride length by the day of the week
+```{r Comparison by day, results='hide'}
+# Generating the average ride time by each day for members vs casual users
+aggregate(all_trips_v2$ride_length~all_trips_v2$member_casual + all_trips_v2$day_of_week, FUN = mean)
+```
+```{r Rearrange the order of the days}
+# Sort the days of the weeks into the correct order (Sunday until Saturday)
+all_trips_v2$day_of_week <- ordered(all_trips_v2$day_of_week, levels = c("Sunday","Monday", "Tuesday", "Wednesday", "Thursday",
+"Friday", "Saturday"))
+
+# Generating the average ride time by each day for members vs casual users (After sorting the days)
+aggregate(all_trips_v2$ride_length~all_trips_v2$member_casual + all_trips_v2$day_of_week, FUN = mean)
+```
+#### Observation
+* Sorting the data by a more intuitive order from Sunday to Saturday rather than the default order.
+
+
+
+#### 4.1.3 Analyse the ridership data by type and weekday
+```{r Analyse the data by type and weekday, message=FALSE}
+all_trips_v2 %>%
+  mutate(weekday = wday(started_at, label = TRUE)) %>%   # Creates temporary weekday field using wday() 
+  group_by(member_casual, weekday) %>%                   # Groups by usertype and weekday
+  summarise(number_of_rides = n()                        # Calculates the number of rides and average duration
+            ,average_duration = mean(ride_length)) %>%   # Calculates the average duration
+            arrange(member_casual, weekday)              # Sorts by member and by the weekday
+```
+#### Observation 
+* After generating the data, it might not be as clear in this format so we can now visualize these data using graphs to observe any meaningful trends.
+
+
+
+#### 4.2 Visualising the data to observe the trends
+
+
+#### 4.2.1 Visualise the number of rides by rider type
+```{r Visualise by rider type, message=FALSE}
+all_trips_v2 %>%
+  mutate(weekday = wday(started_at, label = TRUE)) %>%
+  group_by(member_casual, weekday) %>%
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>%
+            arrange(member_casual, weekday)        %>%
+            ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) +
+            geom_col(position = "dodge") +
+            labs(x="Day of the week", y="Number of rides took", title="Number of rides (Casual vs Member)") 
+```
+
+
+#### Observation 
+* There are no significant differences in the number of rides during the weekends.
+* Casual users use significantly lesser during the weekdays.
+
+
+#### 4.2.2 Visualise the number of rides by rider type (Split up)
+```{r Splitting the graph, message=FALSE}
+all_trips_v2 %>%
+  mutate(weekday = wday(started_at, label = TRUE)) %>%
+  group_by(member_casual, weekday) %>%
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>%
+            arrange(member_casual, weekday)        %>%
+            ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) +
+            geom_col(position = "dodge") +
+            labs(x="Day of the week", y="Number of rides took", title="Number of rides (Casual vs Member)") +
+            facet_wrap(~member_casual)
+```
+
+
+####  Observation 
+* By splitting the graph, we can see that the members are using the services much more consistent compared to casual users. 
+
+
+
+#### 4.2.3 Visualise by the average ride length by rider type
+```{r Visualise by mean, message=FALSE}
+all_trips_v2 %>%
+  mutate(weekday = wday(started_at, label = TRUE)) %>%
+  group_by(member_casual, weekday) %>%
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>%
+            arrange(member_casual, weekday)        %>%
+            ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+            geom_col(position = "dodge") +
+            labs(x="Day of the week", y="Average ride length (in sec)", title="Average ride length (Casual vs Member)")
+```
+
+
+####  Observation 
+* We can tell from the graph that casual users ride longer on average compared to members.
+
+
+
+#### 4.2.4 Visualise by the median duration by rider type
+```{r Visualise by median, message=FALSE}
+all_trips_v2 %>%
+  mutate(weekday = wday(started_at, label = TRUE)) %>%
+  group_by(member_casual, weekday) %>%
+  summarise(number_of_rides = n()
+            ,median_duration = median(ride_length)) %>%
+            arrange(member_casual, weekday)        %>%
+            ggplot(aes(x = weekday, y = median_duration, fill = member_casual)) +
+            geom_col(position = "dodge") +
+            labs(x="Day of the week", y="Median ride length (in sec)", title="Median length of ride (Casual vs Member)")
+```
+
+
+#### Key Observations
+* After exploring the 12 months of bike sharing data, we can answer the question that we set out to answer: "In what ways do members and casual riders use Divvy bikes differently?"
+* There are no significant differences in the number of rides during the weekend but casual users use significantly lesser during the weekdays. 
+* Members are also using the services much more consistent compared to casual users. 
+* Casual riders are having longer ride length both in terms of average and median.
+
+
+#### Possible explanations
+* Members are more likely to be using the bike services for transit to work place which explains the consistent trend in usage throughout the week.
+* Casual users on the other hand are more likely to use the bike services for road trips which tends to cover longer distances and also tend to happen during the weekend rather than weekday.
+* This key difference means the company can introduce benefits that are more appealing for long distance trips like collaboration with popular bike locations for events, member-only discount in parks or natural reserves, more features in the app that are useful for long bike trips like location indexing of commonly used facilities.
+          
