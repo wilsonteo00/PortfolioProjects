@@ -17,6 +17,7 @@ This analysis is part of the capstone project for Google Data Analytics Certific
 * Google Data Analytics Certificate Case Study 1 (Cyclistic) [Data Source](https://divvy-tripdata.s3.amazonaws.com/index.html)
 * The casestudy is based on Divvy dataset used from April 2020 to March 2021 with minor amendments made to the raw data to include more cleaning functions like removing additional columns.
 * Skills used: Combining different files, data cleaning, descriptive analysis and data visualization using R.
+* Click here to access the [code](https://github.com/wilsonteo00/PortfolioProjects/blob/main/Cyclistic_Exercise_Full_Year_Analysis_Notebook.Rmd)
 
 
 ## This analysis aims to answer the key question: "In what ways do members and casual riders use Divvy bikes differently?"
